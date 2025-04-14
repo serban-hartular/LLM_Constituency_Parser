@@ -16,11 +16,11 @@ def tokenize_item(example : dict, tokenizer : AutoTokenizer, label2num : dict[st
     for word_idx in word_ids:
         if word_idx is None: # special token
             labels.append(-100)
-            continue
-        current_label = example['labels'][word_idx]
-        if previous_word_idx == word_idx:
-            current_label = 'I' + current_label[1:] # from B-HEAD to I-HEAD (or from I-HEAD to I-HEAD)
-        labels.append(label2num[current_label])
+        elif previous_word_idx == word_idx:
+            labels.append(-100) # current_label = 'I' + current_label[1:] # from B-HEAD to I-HEAD (or from I-HEAD to I-HEAD)
+        else:
+            current_label = example['labels'][word_idx]
+            labels.append(label2num[current_label])
         previous_word_idx = word_idx
     tokenized_input['labels'] = labels
     return tokenized_input

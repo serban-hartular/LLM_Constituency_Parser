@@ -1,7 +1,7 @@
 task = 'question-answering'
 model_source = "dumitrescustefan/bert-base-romanian-cased-v1"
-dataset_source = './datasets/dsdict_qa_head-dev-1'
-destination_dir = './models/head-qa-bbert-dev'
+dataset_source = './datasets/dsdict_qa_parts-dev-1'
+destination_dir = './models/parts-qa-bbert-dev'
 
 print(f'Task: {task}')
 print(f'Model source: {model_source}\nDataset source: {dataset_source}\nDestination dir: {destination_dir}')
