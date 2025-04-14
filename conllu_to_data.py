@@ -65,6 +65,16 @@ class TokenSpan:
             return [] if self.is_continuous else [self]
         return list(itertools.chain.from_iterable([t.contains_discontinuity() for t in self.subunits]))
 
+    def token_in_subunit(self, token : cp.Tree) -> (TokenSpan, int):
+        if not self.subunits:
+            return None, -1
+        subunit_found, subunit_index = None, -1
+        for subunit in self.subunits:
+            if token in subunit.tokens:
+                subunit_found = subunit
+                subunit_index = subunit.tokens.index(token)
+                break
+        return subunit_found, subunit_index
 
     def to_text(self, stripped : bool = False) -> str:
         s = ''.join([t.sdata('form') + ('' if t.sdata('misc.SpaceAfter') == 'No' else ' ')
@@ -229,7 +239,47 @@ class TrainingDatum:
             l += list(itertools.chain.from_iterable(
                 [TrainingDatum.from_token_span_recursive(r, sentence_text) for r in t.subunits]))
         return l
-# Press the green button in the gutter to run the script.
+
+
+@dataclasses.dataclass
+class LabelledTextSpan:
+    words : list[str]
+    labels : list[str]
+    sentence_text : str = ''
+
+    def to_dict(self) -> dict:
+        return dataclasses.asdict(self)
+
+    @staticmethod
+    def from_token_span(t : TokenSpan, sentence_text : str = '') -> LabelledTextSpan:
+        words, labels = [], []
+        for node in t.tokens:
+            words.append(node.sdata('form'))
+            subunit, index = t.token_in_subunit(node)
+            if subunit is None:
+                labels.append('0')
+            elif subunit == t.head:
+                labels.append('B-HEAD' if index == 0 else 'I-HEAD')
+            else:
+                labels.append('B-DEP' if index == 0 else 'I-DEP')
+        return LabelledTextSpan(words, labels, sentence_text)
+
+    @staticmethod
+    def from_token_span_recursive(t : TokenSpan, sentence_text : str = None) -> list[LabelledTextSpan]:
+        if not t.subunits:
+            return []
+        if sentence_text is None:
+            sentence_text = t.to_text()
+        l = [LabelledTextSpan.from_token_span(t, sentence_text)]
+        l += list(itertools.chain.from_iterable(
+                [LabelledTextSpan.from_token_span_recursive(r, sentence_text) for r in t.subunits]))
+        return l
+
+
+
+
+
+
 if __name__ == '__main__':
     def parse_sentence(sent: str | cp.Sentence) -> TokenSpan:
         if isinstance(sent, str):
@@ -257,3 +307,11 @@ if __name__ == '__main__':
             continue
         sentence_parses.append(c)
     print('Skipped', skip_count, 'of', len(doc))
+
+    labelled_text_spans = []
+    for parse in sentence_parses:
+        if not parse.subunits:
+            continue
+        labelled_text_spans.extend(LabelledTextSpan.from_token_span_recursive(parse))
+
+    dict_list = [lts.to_dict() for lts in labelled_text_spans]
