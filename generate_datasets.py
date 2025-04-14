@@ -47,7 +47,7 @@ if __name__ == "__main__":
 
     raw_training_dev = [TrainingDatum(**d) for d in raw_training_dev]
 
-    phrase_parts_qa = [extract_phrase_head(td) for td in raw_training_dev]
+    phrase_parts_qa = [extract_subunits(td) for td in raw_training_dev]
     phrase_parts_qa = [d for d in phrase_parts_qa if d]
     ds = Dataset.from_list(phrase_parts_qa)
     ds_dict = ds.train_test_split(0.25)
