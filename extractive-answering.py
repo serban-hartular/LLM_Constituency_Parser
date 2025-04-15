@@ -1,7 +1,7 @@
 task = 'question-answering'
 model_source = "dumitrescustefan/bert-base-romanian-cased-v1"
-dataset_source = './datasets/dsdict_qa_parts-dev-1'
-destination_dir = './models/parts-qa-bbert-dev'
+dataset_source = './datasets/dsdict_qa_head_dependent-dev'
+destination_dir = './models/head_dependent-qa-bbert-dev'
 
 print(f'Task: {task}')
 print(f'Model source: {model_source}\nDataset source: {dataset_source}\nDestination dir: {destination_dir}')
@@ -90,6 +90,9 @@ def compute_metrics(eval_pred):
 
 print('Tokenizing dataset')
 
+ds_dict['train'] = ds_dict['train'].select(range(100))
+ds_dict['test'] = ds_dict['test'].select(range(25))
+
 tokenized_dsd = ds_dict.map(preprocess_function, batched=True, remove_columns=ds_dict["train"].column_names)
 
 data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
@@ -127,4 +130,7 @@ trainer = Trainer(
 print('Training')
 
 trainer.train()
+
+from transformers import pipeline
+p = pipeline(task, model=model, tokenizer=tokenizer)
 
