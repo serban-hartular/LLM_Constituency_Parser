@@ -1,7 +1,7 @@
 import itertools
 import pickle
 from conllu_to_data import TokenSpan, TrainingDatum
-from datasets import Dataset, DatasetDict
+from datasets import Dataset, DatasetDict, DatasetInfo
 
 
 phrase2name = {
@@ -20,19 +20,14 @@ def phrase_head_question(td : TrainingDatum, include_phrase_type : bool = True) 
     answer = td.head
     answer_index = context.find(answer)
     assert answer_index >= 0
-    question = 'Care este centrul'
-    if td.label in phrase2name and include_phrase_type:
-        phrase, gen = phrase2name[td.label]
-        question += f" {'acestui' if gen == 'M' else 'acestei'} {phrase}?"
-    else:
-        question += ' acestui grup sintactic?'
+    question = 'Care este centrul?'
     return [{'context': context, 'question':question,
             'answers': {'answer_start': [answer_index], 'text':[answer]}}]
 
 def subunit_questions(td : TrainingDatum) -> list[dict]:
     if not td.subunits or len(td.subunits) < 2:
         return []
-    question = f'Care este primul dependent al centrului "{td.head}"?'
+    question = 'Care este primul dependent?'
     subunits = list(td.subunits)
     dependents = [d for d in subunits if d != td.head]
     question_list = []
@@ -54,6 +49,9 @@ if __name__ == "__main__":
 
     phrase_parts_qa = list(itertools.chain.from_iterable([phrase_head_question(td) + subunit_questions(td) for td in raw_training_dev]))
     ds = Dataset.from_list(phrase_parts_qa)
+    ds.info.description = """This is a qa dataset for determining the head and dependents of a syntactic group.
+    When asking for dependents, the question does not include the head! Based on RoRefTrees."""
+
     ds_dict = ds.train_test_split(0.25)
-    ds_dict.save_to_disk('./datasets/dsdict_qa_head_dependent-dev')
+    ds_dict.save_to_disk('./datasets/dsdict_qa_head_dependent-bare-question-dev')
 

@@ -1,7 +1,9 @@
+import datasets
+
 task = 'question-answering'
 model_source = "dumitrescustefan/bert-base-romanian-cased-v1"
-dataset_source = './datasets/dsdict_qa_head_dependent-dev'
-destination_dir = './models/head_dependent-qa-bbert-dev'
+dataset_source = 'hartular/dsdict_qa_head_dependent-bare-question-dev'
+destination_dir = './models/head_dependent-qa-bbert-bare-question-dev'
 
 print(f'Task: {task}')
 print(f'Model source: {model_source}\nDataset source: {dataset_source}\nDestination dir: {destination_dir}')
@@ -11,15 +13,16 @@ print('Importing')
 from transformers import AutoTokenizer, AutoModelForQuestionAnswering
 from datasets import Dataset, DatasetDict
 from transformers import DataCollatorWithPadding
-import evaluate
-import numpy as np
-from transformers import AutoModelForSequenceClassification, TrainingArguments, Trainer
+# import evaluate
+# import numpy as np
+from transformers import TrainingArguments, Trainer
 
 
 
 print('Loading dataset')
 
-ds_dict = DatasetDict.load_from_disk(dataset_source)
+# ds_dict = DatasetDict.load_from_disk(dataset_source)
+ds_dict = datasets.load_dataset(dataset_source)
 # labels = list(set(ds_dict['train']['label']) | set(ds_dict['test']['label']))
 # labels.sort()
 # id2label = {i:l for i,l in enumerate(labels)}
@@ -82,11 +85,11 @@ def preprocess_function(examples):
     inputs["end_positions"] = end_positions
     return inputs
 
-accuracy = evaluate.load("accuracy")
-def compute_metrics(eval_pred):
-    predictions, labels = eval_pred
-    predictions = np.argmax(predictions, axis=1)
-    return accuracy.compute(predictions=predictions, references=labels)
+# accuracy = evaluate.load("accuracy")
+# def compute_metrics(eval_pred):
+#     predictions, labels = eval_pred
+#     predictions = np.argmax(predictions, axis=1)
+#     return accuracy.compute(predictions=predictions, references=labels)
 
 print('Tokenizing dataset')
 
