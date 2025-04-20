@@ -1,16 +1,45 @@
 import datasets
 
 task = 'question-answering'
-model_source = "dumitrescustefan/bert-base-romanian-cased-v1"
+model_source = "dumitrescustefan/mt5-base-romanian"
 dataset_source = 'hartular/dsdict_qa_head_dependent-bare-question-dev'
-destination_dir = './models/head_dependent-qa-bbert-bare-question-dev'
+new_model_name = 'test-mt5' #'head_dependent-qa-t5-bare-question-dev'
+destination_dir = f'./models/{new_model_name}'
+# model_type = 't5' # t5, bert
+max_length = 384
+
+train_samples = 100 # -1 for all
+test_samples = 25 # -1 for all
 
 print(f'Task: {task}')
-print(f'Model source: {model_source}\nDataset source: {dataset_source}\nDestination dir: {destination_dir}')
+print(f"""Model source: {model_source}
+Dataset source: {dataset_source}
+Destination dir: {destination_dir}
+Train/Test samples: {train_samples}/{test_samples}""")
 
 print('Importing')
 
-from transformers import AutoTokenizer, AutoModelForQuestionAnswering
+# if model_type not in ('bert', 't5', 'mt5'):
+#     print(f'Unknown model type {model_type}, defaulting to bert')
+#     model_type = 'bert'
+#
+# if model_type == 'bert':
+#     from transformers import AutoModelForQuestionAnswering, AutoTokenizer
+#     AUTOMODEL = AutoModelForQuestionAnswering
+#     AUTOTOKENIZER = AutoTokenizer
+# elif model_type == 't5':
+#     from transformers import T5ForQuestionAnswering, T5TokenizerFast
+#     AUTOMODEL = T5ForQuestionAnswering
+#     AUTOTOKENIZER = T5TokenizerFast
+# elif model_type == 'mt5':
+#     from transformers import MT5ForQuestionAnswering, MT5TokenizerFast
+#     AUTOMODEL = MT5ForQuestionAnswering
+#     AUTOTOKENIZER = MT5TokenizerFast
+
+from transformers import AutoModelForQuestionAnswering, AutoTokenizer
+AUTOMODEL = AutoModelForQuestionAnswering
+AUTOTOKENIZER = AutoTokenizer
+
 from datasets import Dataset, DatasetDict
 from transformers import DataCollatorWithPadding
 # import evaluate
@@ -33,13 +62,13 @@ ds_dict = datasets.load_dataset(dataset_source)
 
 print('Loading tokenizer')
 
-tokenizer = AutoTokenizer.from_pretrained(model_source)
-def preprocess_function(examples):
+tokenizer = AUTOTOKENIZER.from_pretrained(model_source)
+def preprocess_function(examples, _tokenizer):
     questions = [q.strip() for q in examples["question"]]
-    inputs = tokenizer(
+    inputs = _tokenizer(
         questions,
         examples["context"],
-        max_length=384,
+        max_length=max_length,
         truncation="only_second",
         return_offsets_mapping=True,
         padding="max_length",
@@ -93,17 +122,19 @@ def preprocess_function(examples):
 
 print('Tokenizing dataset')
 
-ds_dict['train'] = ds_dict['train'].select(range(100))
-ds_dict['test'] = ds_dict['test'].select(range(25))
+if train_samples > 0:
+    ds_dict['train'] = ds_dict['train'].select(range(train_samples))
+if test_samples > 0:
+    ds_dict['test'] = ds_dict['test'].select(range(test_samples))
 
-tokenized_dsd = ds_dict.map(preprocess_function, batched=True, remove_columns=ds_dict["train"].column_names)
+tokenized_dsd = ds_dict.map(lambda ex : preprocess_function(ex, tokenizer), batched=True, remove_columns=ds_dict["train"].column_names)
 
 data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
 
 
 print('Loading model')
 
-model = AutoModelForQuestionAnswering.from_pretrained(
+model = AUTOMODEL.from_pretrained(
     model_source
 )
 
@@ -134,6 +165,6 @@ print('Training')
 
 trainer.train()
 
-from transformers import pipeline
-p = pipeline(task, model=model, tokenizer=tokenizer)
+# from transformers import pipeline
+# p = pipeline(task, model=model, tokenizer=tokenizer)
 
