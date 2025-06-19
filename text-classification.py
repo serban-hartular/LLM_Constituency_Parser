@@ -1,7 +1,9 @@
+import datasets
+
 task = 'text-classification'
 model_source = "dumitrescustefan/bert-base-romanian-cased-v1"
-dataset_source = './datasets/dsdict_context-dev'
-destination_dir = './models/bert-base-context-dev'
+dataset_source = 'hartular/bad_phrases_ro_gender'
+destination_dir = './models/bad_phrases_gender-dev'
 
 print(f'Task: {task}')
 print(f'Model source: {model_source}\nDataset source: {dataset_source}\nDestination dir: {destination_dir}')
@@ -19,12 +21,34 @@ from transformers import AutoModelForSequenceClassification, TrainingArguments, 
 
 print('Loading dataset')
 
-ds_dict = DatasetDict.load_from_disk(dataset_source)
-labels = list(set(ds_dict['train']['label']) | set(ds_dict['test']['label']))
-labels.sort()
+count = 2000
+
+ds_orig = datasets.load_dataset(dataset_source)
+ds_orig = ds_orig['train']
+ds_orig.shuffle()
+if count:
+    ds_orig = ds_orig.select(range(count))
+# separate into good and bad. don't reuse sentences
+sentence_set = set()
+labelled_data = []
+ds_orig = ds_orig.to_list()
+for d in ds_orig:
+    if d['good_sentence'] in sentence_set:
+        continue
+    sentence_set.add(d['good_sentence'])
+    for key, label in zip(['good_sentence', 'bad_sentence'], [1, 0]):
+        labelled_data.append({'text':d[key], 'label':label})
+ds = Dataset.from_list(labelled_data)
+ds.shuffle()
+
+ds_dict = ds.train_test_split(test_size=0.25)
+
+
+labels = ['bad', 'good']
 id2label = {i:l for i,l in enumerate(labels)}
 label2id = {l:i for i,l in id2label.items()}
-ds_dict = ds_dict.map(lambda ex : {'text':ex['text'], 'label':label2id[ex['label']]})
+
+# ds_dict = ds_dict.map(lambda ex : {'text':ex['text'], 'label':label2id[ex['label']]})
 
 
 
@@ -81,4 +105,8 @@ trainer = Trainer(
 print('Training')
 
 trainer.train()
+
+from transformers import pipeline
+
+p = pipeline(task, model=trainer.model, tokenizer=trainer.processing_class)
 
