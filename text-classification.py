@@ -3,7 +3,7 @@ import datasets
 task = 'text-classification'
 model_source = "dumitrescustefan/bert-base-romanian-cased-v1"
 dataset_source = 'hartular/bad_phrases_ro_gender'
-destination_dir = './models/bad_phrases_gender-dev'
+destination_dir = './models/bad_phrases_gender-all'
 
 print(f'Task: {task}')
 print(f'Model source: {model_source}\nDataset source: {dataset_source}\nDestination dir: {destination_dir}')
@@ -21,7 +21,7 @@ from transformers import AutoModelForSequenceClassification, TrainingArguments, 
 
 print('Loading dataset')
 
-count = 2000
+count = None #2000
 
 ds_orig = datasets.load_dataset(dataset_source)
 ds_orig = ds_orig['train']
@@ -89,7 +89,7 @@ training_args = TrainingArguments(
     eval_strategy="epoch",
     save_strategy="epoch",
     load_best_model_at_end=True,
-    push_to_hub=False, # True
+    push_to_hub=True # False, # True
 )
 
 trainer = Trainer(
