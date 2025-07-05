@@ -2,11 +2,13 @@ import datasets
 
 task = 'text-classification'
 model_source = "dumitrescustefan/bert-base-romanian-cased-v1"
-dataset_source = 'hartular/bad_phrases_ro_gender'
-destination_dir = './models/bad_phrases_gender-all'
+dataset_source = 'hartular/agreement-errors-ro-rrt'
+feature = 'Gender'
+destination_dir = f'./models/label-{feature.lower()}_agreement-phrase-rrt'
 
 print(f'Task: {task}')
 print(f'Model source: {model_source}\nDataset source: {dataset_source}\nDestination dir: {destination_dir}')
+
 
 print('Importing')
 
@@ -21,27 +23,31 @@ from transformers import AutoModelForSequenceClassification, TrainingArguments, 
 
 print('Loading dataset')
 
-count = None #2000
+count = None
 
 ds_orig = datasets.load_dataset(dataset_source)
 ds_orig = ds_orig['train']
-ds_orig.shuffle()
-if count:
-    ds_orig = ds_orig.select(range(count))
+ds_use = ds_orig.filter(lambda d : d['feature']==feature)
+ds_use.shuffle()
+
 # separate into good and bad. don't reuse sentences
-sentence_set = set()
+text_set = set()
 labelled_data = []
-ds_orig = ds_orig.to_list()
-for d in ds_orig:
-    if d['good_sentence'] in sentence_set:
+ds_use = ds_use.to_list()
+for d in ds_use:
+    if d['good_phrase'] in text_set:
         continue
-    sentence_set.add(d['good_sentence'])
-    for key, label in zip(['good_sentence', 'bad_sentence'], [1, 0]):
+    text_set.add(d['good_phrase'])
+    for key, label in zip(['good_phrase', 'bad_phrase'], [1, 0]):
         labelled_data.append({'text':d[key], 'label':label})
+
 ds = Dataset.from_list(labelled_data)
 ds.shuffle()
+if count:
+    ds = ds.select(range(count))
 
 ds_dict = ds.train_test_split(test_size=0.25)
+print(f'Training dataset len: {len(ds_dict["train"])}')
 
 
 labels = ['bad', 'good']
