@@ -8,13 +8,16 @@ import evaluate
 import numpy as np
 from transformers import AutoModelForSequenceClassification, TrainingArguments, Trainer
 
-for feature in ['All', 'Number', 'Case']: # Gender is being done
+max_length = 512
+level = 'sentence' # or phrase
+
+for feature in ['Gender', 'Number', 'Case', 'All']:
 
     task = 'text-classification'
     model_source = "dumitrescustefan/bert-base-romanian-cased-v1"
     dataset_source = 'hartular/agreement-errors-ro-rrt'
     # feature = 'Gender'
-    model_name = f'label-{feature.lower()}_agreement-phrase-rrt'
+    model_name = f'label-{feature.lower()}_agreement-{level}-rrt'
     destination_dir = f'./models/{model_name}'
 
     print(f'Task: {task}')
@@ -38,10 +41,10 @@ for feature in ['All', 'Number', 'Case']: # Gender is being done
     labelled_data = []
     ds_use = ds_use.to_list()
     for d in ds_use:
-        if d['good_phrase'] in text_set:
+        if d[f'good_{level}'] in text_set:
             continue
-        text_set.add(d['good_phrase'])
-        for key, label in zip(['good_phrase', 'bad_phrase'], [1, 0]):
+        text_set.add(d[f'good_{level}'])
+        for key, label in zip([f'good_{level}', f'good_{level}'], [1, 0]):
             labelled_data.append({'text':d[key], 'label':label})
 
     ds = Dataset.from_list(labelled_data)
@@ -65,7 +68,7 @@ for feature in ['All', 'Number', 'Case']: # Gender is being done
 
     tokenizer = AutoTokenizer.from_pretrained(model_source)
     def preprocess_function(examples):
-        return tokenizer(examples["text"]) #, truncation=True)
+        return tokenizer(examples["text"], truncation=True, max_length=max_length)
 
     accuracy = evaluate.load("accuracy")
     def compute_metrics(eval_pred):

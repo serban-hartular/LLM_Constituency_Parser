@@ -1,40 +1,51 @@
 import datasets
 
-task = 'question-answering'
-model_source = "dumitrescustefan/mt5-base-romanian"
-dataset_source = 'hartular/dsdict_qa_head_dependent-bare-question-dev'
-new_model_name = 'test-mt5' #'head_dependent-qa-t5-bare-question-dev'
-destination_dir = f'./models/{new_model_name}'
-# model_type = 't5' # t5, bert
-max_length = 384
+feature = 'Gender'
 
-train_samples = 100 # -1 for all
-test_samples = 25 # -1 for all
+
+task = 'question-answering'
+model_source = "dumitrescustefan/bert-base-romanian-cased-v1"
+new_model_name = f'extract-{feature.lower()}_agreement-rrt' #'head_dependent-qa-t5-bare-question-dev'
+destination_dir = f'./models/{new_model_name}'
+
+max_length = 512
+train_samples = -1 # -1 for all
+test_samples = -1 # -1 for all
 
 print(f'Task: {task}')
 print(f"""Model source: {model_source}
-Dataset source: {dataset_source}
 Destination dir: {destination_dir}
 Train/Test samples: {train_samples}/{test_samples}""")
 
+print('Preparing dataset')
+
+dataset_source = 'hartular/agreement-errors-ro-rrt'
+
+
+ds_orig = datasets.load_dataset(dataset_source)
+ds_orig = ds_orig['train']
+ds_orig.shuffle()
+ds_orig_list = ds_orig.to_list()
+if feature and feature.lower() != 'all':
+    ds_orig_list = [d for d in ds_orig_list if d['feature'] == feature]
+used_text_set = set()
+data_list = []
+for datum in ds_orig_list:
+    if datum['good_phrase'] in used_text_set:
+        continue
+    used_text_set.add(datum['good_phrase'])
+    qa_good = {'context':datum['good_phrase'], 'question':'Care sunt greșelile?',
+               'answers':{'answer_start':[-1], 'text':['']}}
+    qa_bad = {'context': datum['bad_phrase'], 'question': 'Care sunt greșelile?',
+               'answers': {'answer_start': [datum['start_index']], 'text': [datum['bad_form']]}}
+    data_list.extend([qa_good, qa_bad])
+
+ds_use = datasets.Dataset.from_list(data_list)
+ds_use.shuffle()
+ds_dict = ds_use.train_test_split(0.25)
+
 print('Importing')
 
-# if model_type not in ('bert', 't5', 'mt5'):
-#     print(f'Unknown model type {model_type}, defaulting to bert')
-#     model_type = 'bert'
-#
-# if model_type == 'bert':
-#     from transformers import AutoModelForQuestionAnswering, AutoTokenizer
-#     AUTOMODEL = AutoModelForQuestionAnswering
-#     AUTOTOKENIZER = AutoTokenizer
-# elif model_type == 't5':
-#     from transformers import T5ForQuestionAnswering, T5TokenizerFast
-#     AUTOMODEL = T5ForQuestionAnswering
-#     AUTOTOKENIZER = T5TokenizerFast
-# elif model_type == 'mt5':
-#     from transformers import MT5ForQuestionAnswering, MT5TokenizerFast
-#     AUTOMODEL = MT5ForQuestionAnswering
-#     AUTOTOKENIZER = MT5TokenizerFast
 
 from transformers import AutoModelForQuestionAnswering, AutoTokenizer
 AUTOMODEL = AutoModelForQuestionAnswering
@@ -45,19 +56,6 @@ from transformers import DataCollatorWithPadding
 # import evaluate
 # import numpy as np
 from transformers import TrainingArguments, Trainer
-
-
-
-print('Loading dataset')
-
-# ds_dict = DatasetDict.load_from_disk(dataset_source)
-ds_dict = datasets.load_dataset(dataset_source)
-# labels = list(set(ds_dict['train']['label']) | set(ds_dict['test']['label']))
-# labels.sort()
-# id2label = {i:l for i,l in enumerate(labels)}
-# label2id = {l:i for i,l in id2label.items()}
-# ds_dict = ds_dict.map(lambda ex : {'text':ex['text'], 'label':label2id[ex['label']]})
-
 
 
 print('Loading tokenizer')
