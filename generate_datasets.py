@@ -6,7 +6,7 @@ import random
 
 def to_train_test(datalist : list[dict], shuffle = False) -> (list[dict], list[dict]):
     """Split is approx 75/25. The assumption is that each data dict contains the items
-    'good_sentence' and 'bad_sentence'"""
+    'original' 'text', and 'error_class' """
     good_sentences = Counter([d['good_text'] for d in datalist])
     good_sentences = list(good_sentences.items())
     good_sentences.sort(key=lambda t : -t[1]) # sort by count, decreasing

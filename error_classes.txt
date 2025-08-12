@@ -1,0 +1,36 @@
+###########################
+#  0: Agreement - Gender
+#  1: Agreement - Number
+#  2: Agreement - Person
+#  3: Requirement - Preposition case
+#  4: Requirement - Subjunctive
+#  5: Requirement - Compound verb mood
+#  6: Position - Preposition
+#  7: Position - Clause connector
+#  8: Position - Pronominal clitic
+#  9: Position - Verbal auxiliary
+# 10: Omission - Noun (has determiner)
+# 11: Omission - Verbal auxiliary
+# 12: Omission - Main verb in compound tenses
+# 13: Omission - Adj/Adv in comparative constructions
+
+morpho_agreement_mask   = 0b00000000000111
+morpho_requirement_mask = 0b00000000111000
+position_mask           = 0b00001111000000
+omission_mask           = 0b11110000000000
+
+morpho_classes = {
+ ('MorphoAgree', 'Gender'): 0,
+ ('MorphoAgree', 'Number'): 1,
+ ('MorphoAgree', 'Person'): 2,
+ ('MorphoRequired', 'Preposition Case'): 3,
+ ('MorphoRequired', 'Indicative/Subjunctive'): 4,
+ ('MorphoRequired', 'Compound Verb'): 5,
+ ('Position', 'preposition'): 6,
+ ('Position', 'clause connector'): 7,
+ ('Position', 'pronominal clitic'): 8,
+ ('Position', 'auxiliary'): 9,
+ ('Omission', 'noun with det'): 10,
+ ('Omission', 'auxiliary'): 11,
+ ('Omission', 'compound verb'): 12,
+ ('Omission', 'adj/adv compare'): 13}
